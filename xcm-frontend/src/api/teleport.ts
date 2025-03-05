@@ -1,25 +1,40 @@
 import { AccountId, Binary, SS58String } from "polkadot-api";
-import { paraChain, paseoAssetHubChainApi } from "./asset-hub-chain";
 import {
-  paseo,
-  paseo_asset_hub,
-  paseo_people,
-  XcmVersionedAsset,
+  PASEO_ASSET_HUB_CHAIN_ID,
+  paseoAssetHubChainApi,
+} from "./asset-hub-chain";
+import { paseoRelayChainApi } from "./relay-chain";
+import { PASEO_PEOPLE_CHAIN_ID } from "./people-chain";
+import {
   XcmVersionedLocation,
   XcmV3MultiassetFungibility,
-  XcmV3Junction,
   XcmV3Junctions,
   XcmVersionedAssets,
   XcmV3WeightLimit,
+  XcmV3Junction,
+  XcmV5Junction,
+  XcmV5Junctions,
 } from "@polkadot-api/descriptors";
-import { paseoRelayChainApi, relayChain } from "./relay-chain";
+
+const encodeAccount = AccountId().enc;
 
 export const reserveTransferToParachain = (
   address: SS58String,
   amount: bigint
 ): any => {
   // TODO: Implement a logic to reserve transfer to parachain
-  // const xcmTransaction =
+  const xcmTx = paseoAssetHubChainApi.tx.PolkadotXcm.reserve_transfer_assets({
+    dest: XcmVersionedLocation.V4({
+      parents: 0,
+      interior: XcmV3Junctions.X1(
+        XcmV3Junction.Parachain(PASEO_PEOPLE_CHAIN_ID)
+      ),
+    }),
+    beneficiary: getBeneficiary(0, address),
+    assets: getNativeAsset(0, amount),
+    fee_asset_item: 0,
+  });
+  return xcmTx;
 };
 
 export const teleportToParaChain = (address: SS58String, amount: bigint) => {
@@ -29,9 +44,11 @@ export const teleportToParaChain = (address: SS58String, amount: bigint) => {
   const xcmTx = paseoRelayChainApi.tx.XcmPallet.transfer_assets({
     dest: XcmVersionedLocation.V4({
       parents: 0, // Because we are in the relay chain at the moment
-      interior: XcmV3Junctions.X1(XcmV3Junction.Parachain(1000)),
+      interior: XcmV3Junctions.X1(
+        XcmV3Junction.Parachain(PASEO_ASSET_HUB_CHAIN_ID)
+      ),
     }),
-    beneficiary: getBeneficiary(address),
+    beneficiary: getBeneficiary(0, address),
     assets: getNativeAsset(0, amount),
     fee_asset_item: 0,
     weight_limit: XcmV3WeightLimit.Unlimited(),
@@ -47,24 +64,23 @@ export const teleportToRelayChain = (
   // TODO: Implement a logic to teleport to relaychain
 
   // Construct XCM transaction to teleport from parachain (PASEO Asset Hub) to relay chain (PASEO)
-  const xcmTx = paseoAssetHubChainApi.tx.PolkadotXcm.reserve_transfer_assets({
+  const xcmTx = paseoAssetHubChainApi.tx.PolkadotXcm.transfer_assets({
     dest: XcmVersionedLocation.V4({
       parents: 1, // Because we are in the parachain which is the "child" of the relay chain
       interior: XcmV3Junctions.Here(),
     }),
-    beneficiary: getBeneficiary(address),
+    beneficiary: getBeneficiary(0, address),
     assets: getNativeAsset(1, amount),
     fee_asset_item: 0,
+    weight_limit: XcmV3WeightLimit.Unlimited(),
   });
 
   return xcmTx;
 };
 
-const encodeAccount = AccountId().enc;
-
-const getBeneficiary = (address: SS58String | Uint8Array) =>
+const getBeneficiary = (parents: number, address: SS58String | Uint8Array) =>
   XcmVersionedLocation.V4({
-    parents: 0,
+    parents,
     interior: XcmV3Junctions.X1(
       XcmV3Junction.AccountId32({
         network: undefined,
