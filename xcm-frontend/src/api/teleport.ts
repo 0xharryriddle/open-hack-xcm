@@ -12,7 +12,6 @@ import {
   XcmVersionedAssets,
   XcmV3WeightLimit,
   XcmV3Junction,
-  XcmV5Junction,
   XcmV5Junctions,
 } from "@polkadot-api/descriptors";
 
@@ -25,7 +24,7 @@ export const reserveTransferToParachain = (
   // TODO: Implement a logic to reserve transfer to parachain
   const xcmTx = paseoAssetHubChainApi.tx.PolkadotXcm.reserve_transfer_assets({
     dest: XcmVersionedLocation.V4({
-      parents: 0,
+      parents: 1,
       interior: XcmV3Junctions.X1(
         XcmV3Junction.Parachain(PASEO_PEOPLE_CHAIN_ID)
       ),
@@ -97,7 +96,7 @@ const getNativeAsset = (parents: number, amount: bigint) =>
     {
       id: {
         parents,
-        interior: XcmV3Junctions.Here(),
+        interior: XcmV5Junctions.Here(),
       },
       fun: XcmV3MultiassetFungibility.Fungible(amount),
     },
